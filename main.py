@@ -1,6 +1,6 @@
 import os
 import glob
-import static_ffmpeg
+import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -13,47 +13,46 @@ from telegram.ext import (
 )
 import yt_dlp
 
-# غیرفعال کردن پروکسی‌های مزاحم سرور
-os.environ.pop("HTTP_PROXY", None)
-os.environ.pop("HTTPS_PROXY", None)
-os.environ.pop("http_proxy", None)
-os.environ.pop("https_proxy", None)
-os.environ.pop("ALL_PROXY", None)
-os.environ.pop("all_proxy", None)
-
-static_ffmpeg.add_paths()
-
 GET_LINK = range(1)
 
-def download_media(url: str, mode: str) -> list:
-def download_media(url: str, mode: str) -> list:
+def download_via_api(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
+    out_path = "downloads/downloaded_media.mp4" if mode == "video" else "downloads/downloaded_media.mp3"
     
+    # استفاده از API مستقیم برای دور زدن کامل بلاک آی‌پی دیتاسنتر یوتیوب
+    api_url = "https://api.cobalt.tools/api/json"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0"
+    }
+    payload = {
+        "url": url,
+        "downloadMode": "audio" if mode == "audio" else "auto"
+    }
+    
+    try:
+        res = requests.post(api_url, json=payload, headers=headers, timeout=20)
+        data = res.json()
+        download_url = data.get("url")
+        
+        if download_url:
+            r = requests.get(download_url, stream=True, timeout=60)
+            with open(out_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            return [out_path]
+    except Exception:
+        pass
+
+    # فال‌بک معمولی برای اینستاگرام و سایر پلتفرم‌ها
     ydl_opts = {
         'outtmpl': 'downloads/%(id)s.%(ext)s',
         'max_filesize': 48 * 1024 * 1024,
         'quiet': True,
         'nocheckcertificate': True,
-        'noplaylist': True,
-        'proxy': '',
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['web', 'mweb']
-            }
-        }
+        'format': 'bestaudio/best' if mode == "audio" else 'best/bestvideo+bestaudio'
     }
-
-    if mode == "audio":
-        ydl_opts['format'] = 'bestaudio/best'
-        ydl_opts['postprocessors'] = [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }]
-    else:
-        # حذف فیلتر فرمت برای دانلود خودکار هر ویدیوی موجود
-        ydl_opts['merge_output_format'] = 'mp4'
-
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         if 'entries' in info:
@@ -61,8 +60,7 @@ def download_media(url: str, mode: str) -> list:
             for entry in info['entries']:
                 if entry:
                     file_id = entry.get('id', 'media')
-                    found = glob.glob(f"downloads/{file_id}*")
-                    downloaded_files.extend(found)
+                    downloaded_files.extend(glob.glob(f"downloads/{file_id}*"))
             return downloaded_files
         else:
             file_id = info.get('id', 'media')
@@ -72,7 +70,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.effective_user.first_name
     welcome_text = (
         f"سلام **{user_name}** عزیز! 👋\n"
-        "به ربات دانلودر خوش آمدید.\n\n"
+        "به ربات سریع دانلودر خوش آمدید.\n\n"
         "لطفاً نوع دانلود را انتخاب کنید:"
     )
     keyboard = [
@@ -114,10 +112,10 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return GET_LINK
         
     mode = context.user_data.get('mode', 'video')
-    status_msg = await update.message.reply_text("⏳ در حال دانلود... لطفاً کمی صبر کنید.")
+    status_msg = await update.message.reply_text("⏳ در حال دریافت مستقیم فایل... لطفاً صبر کنید.")
     
     try:
-        files = download_media(url, mode)
+        files = download_via_api(url, mode)
         if files:
             await status_msg.edit_text("⬆️ در حال ارسال به تلگرام...")
             for f in files:
@@ -140,7 +138,7 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await status_msg.delete()
         else:
-            await status_msg.edit_text("❌ خطا: فایلی برای دانلود یافت نشد.")
+            await status_msg.edit_text("❌ خطا: سرور نتوانست این لینک را دریافت کند.")
     except Exception as e:
         await status_msg.edit_text(f"❌ خطا: {str(e)[:120]}")
     finally:
