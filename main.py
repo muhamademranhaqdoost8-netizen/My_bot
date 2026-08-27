@@ -1,5 +1,6 @@
 import os
 import glob
+import static_ffmpeg
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -12,6 +13,9 @@ from telegram.ext import (
 )
 import yt_dlp
 
+# اضافه کردن ffmpeg به مسیر سیستم به صورت خودکار
+static_ffmpeg.add_paths()
+
 GET_LINK = range(1)
 
 def download_media(url: str, mode: str) -> list:
@@ -19,15 +23,15 @@ def download_media(url: str, mode: str) -> list:
     
     if mode == "audio":
         ydl_opts = {
-            'format': 'ba/bestaudio/best',
+            'format': 'bestaudio/best',
             'outtmpl': 'downloads/%(id)s.%(ext)s',
             'max_filesize': 48 * 1024 * 1024,
             'quiet': True,
         }
     else:
-        # دریافت فرمت آماده تکی بدون نیاز به ترکیب و ffmpeg
+        # بهترین کیفیت ویدیو + بهترین کیفیت صدا همراه با ترکیب خودکار توسط ffmpeg
         ydl_opts = {
-            'format': 'b/best',
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': 'downloads/%(id)s.%(ext)s',
             'max_filesize': 48 * 1024 * 1024,
             'quiet': True,
