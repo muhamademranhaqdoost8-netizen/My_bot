@@ -27,24 +27,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "به ربات پیشرفته دانلودر خوش آمدید.\n\n"
         "✨ این ربات با افتخار توسط **عمران نوری** ساخته شده است.\n\n"
         "لطفاً یکی از گزینه‌های زیر را انتخاب کنید:"
-    )def download_media(url: str, mode: str) -> list:
+def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     
+    # تنظیمات پیشرفته برای دور زدن محدودیت‌های یوتیوب
+    common_opts = {
+        'outtmpl': 'downloads/%(id)s.%(ext)s',
+        'max_filesize': 48 * 1024 * 1024,
+        'quiet': True,
+        'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+    }
+
     if mode == "audio":
         ydl_opts = {
+            **common_opts,
             'format': 'bestaudio/best',
-            'outtmpl': 'downloads/%(id)s.%(ext)s',
-            'max_filesize': 48 * 1024 * 1024,
-            'quiet': True,
         }
     else:
-        # انتخاب منعطف: بهترین تصویر + بهترین صدا از هر نوع فرمتی
         ydl_opts = {
+            **common_opts,
             'format': 'bestvideo+bestaudio/best',
-            'merge_output_format': 'mp4',  # تبدیل خروجی نهایی به mp4 توسط ffmpeg
-            'outtmpl': 'downloads/%(id)s.%(ext)s',
-            'max_filesize': 48 * 1024 * 1024,
-            'quiet': True,
+            'merge_output_format': 'mp4',
         }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
