@@ -1,4 +1,3 @@
 python-telegram-bot
 yt-dlp
 static-ffmpeg
-yt-dlp-youtube-oauth2
