@@ -81,13 +81,13 @@ async def menu_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "opt_yt_audio":
         context.user_data['mode'] = "audio"
-        await query.message.reply_text("🎵 لطفاً لینک **آهنگ/ویدیو از یوتیوب** را ارسال کنید:")
+        await query.message.reply_text("🎵 لطفاً لینک آهنگ/ویدیو از یوتیوب را ارسال کنید:")
     elif data == "opt_yt_video":
         context.user_data['mode'] = "video"
-        await query.message.reply_text("📥 لطفاً لینک **ویدیو از یوتیوب** را ارسال کنید:")
+        await query.message.reply_text("📥 لطفاً لینک ویدیو از یوتیوب را ارسال کنید:")
     elif data == "opt_insta":
         context.user_data['mode'] = "video"
-        await query.message.reply_text("📸 لطفاً لینک **پست یا استوری اینستاگرام** را ارسال کنید:")
+        await query.message.reply_text("📸 لطفاً لینک پست یا استوری اینستاگرام را ارسال کنید:")
         
     return GET_LINK
 
