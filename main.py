@@ -14,7 +14,7 @@ import yt_dlp
 
 GET_LINK, GET_QUALITY = range(2)
 
-def download_media(url: str, mode: str, quality: str) -> list:
+dedef download_media(url: str, mode: str, quality: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     if mode == "audio":
         ydl_opts = {
@@ -25,12 +25,12 @@ def download_media(url: str, mode: str, quality: str) -> list:
         }
     else:
         quality_map = {
-            "360": "best[height<=360]",
-            "480": "best[height<=480]",
-            "720": "best[height<=720]",
-            "1080": "best[height<=1080]"
+            "360": "bestvideo[height<=360]+bestaudio/best[height<=360]/best",
+            "480": "bestvideo[height<=480]+bestaudio/best[height<=480]/best",
+            "720": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+            "1080": "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
         }
-        f_selector = quality_map.get(quality, "best[ext=mp4]/best")
+        f_selector = quality_map.get(quality, "bestvideo+bestaudio/best")
         ydl_opts = {
             'format': f_selector,
             'outtmpl': 'downloads/%(id)s.%(ext)s',
