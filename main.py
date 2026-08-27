@@ -28,16 +28,17 @@ GET_LINK = range(1)
 def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     
+    # تنظیم دانلود منعطف بدون محدودیت فرمت
     ydl_opts = {
         'outtmpl': 'downloads/%(id)s.%(ext)s',
         'max_filesize': 48 * 1024 * 1024,
         'quiet': True,
         'nocheckcertificate': True,
-        'noplaylist': True,  # جلوگیری از دانلود میکس/پلی‌لیست و تک‌ویدیویی کردن دانلود
-        'proxy': '',         # غیرفعال کردن اجباری پروکسی برای اتصال مستقیم
+        'noplaylist': True,
+        'proxy': '',
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_creator', 'ios']
+                'player_client': ['android', 'web', 'mweb']
             }
         }
     }
@@ -45,7 +46,8 @@ def download_media(url: str, mode: str) -> list:
     if mode == "audio":
         ydl_opts['format'] = 'bestaudio/best'
     else:
-        ydl_opts['format'] = 'bestvideo+bestaudio/best'
+        # دریافت هر فرمت ویدیویی موجود (ترکیبی یا تکی)
+        ydl_opts['format'] = 'bestvideo+bestaudio/best/b'
         ydl_opts['merge_output_format'] = 'mp4'
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
