@@ -26,9 +26,9 @@ static_ffmpeg.add_paths()
 GET_LINK = range(1)
 
 def download_media(url: str, mode: str) -> list:
+def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     
-    # تنظیم دانلود منعطف بدون محدودیت فرمت
     ydl_opts = {
         'outtmpl': 'downloads/%(id)s.%(ext)s',
         'max_filesize': 48 * 1024 * 1024,
@@ -38,16 +38,20 @@ def download_media(url: str, mode: str) -> list:
         'proxy': '',
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web', 'mweb']
+                'player_client': ['web', 'mweb']
             }
         }
     }
 
     if mode == "audio":
         ydl_opts['format'] = 'bestaudio/best'
+        ydl_opts['postprocessors'] = [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }]
     else:
-        # دریافت هر فرمت ویدیویی موجود (ترکیبی یا تکی)
-        ydl_opts['format'] = 'bestvideo+bestaudio/best/b'
+        # حذف فیلتر فرمت برای دانلود خودکار هر ویدیوی موجود
         ydl_opts['merge_output_format'] = 'mp4'
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
