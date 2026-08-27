@@ -13,6 +13,14 @@ from telegram.ext import (
 )
 import yt_dlp
 
+# غیرفعال کردن پروکسی‌های مزاحم سرور
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("HTTPS_PROXY", None)
+os.environ.pop("http_proxy", None)
+os.environ.pop("https_proxy", None)
+os.environ.pop("ALL_PROXY", None)
+os.environ.pop("all_proxy", None)
+
 static_ffmpeg.add_paths()
 
 GET_LINK = range(1)
@@ -20,15 +28,16 @@ GET_LINK = range(1)
 def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     
-    # تنظیم کلاینت‌های موبایل برای عبور کامل از مسدودسازی یوتیوب
     ydl_opts = {
         'outtmpl': 'downloads/%(id)s.%(ext)s',
         'max_filesize': 48 * 1024 * 1024,
         'quiet': True,
         'nocheckcertificate': True,
+        'noplaylist': True,  # جلوگیری از دانلود میکس/پلی‌لیست و تک‌ویدیویی کردن دانلود
+        'proxy': '',         # غیرفعال کردن اجباری پروکسی برای اتصال مستقیم
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_creator', 'ios', 'android']
+                'player_client': ['android_creator', 'ios']
             }
         }
     }
@@ -44,9 +53,10 @@ def download_media(url: str, mode: str) -> list:
         if 'entries' in info:
             downloaded_files = []
             for entry in info['entries']:
-                file_id = entry.get('id', 'media')
-                found = glob.glob(f"downloads/{file_id}*")
-                downloaded_files.extend(found)
+                if entry:
+                    file_id = entry.get('id', 'media')
+                    found = glob.glob(f"downloads/{file_id}*")
+                    downloaded_files.extend(found)
             return downloaded_files
         else:
             file_id = info.get('id', 'media')
@@ -135,7 +145,7 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return GET_LINK
 
 if __name__ == '__main__':
-    BOT_TOKEN = "8876033736:AAH-EoESxq8aTDDMJE3gtxOC7hOZ2x0e5wg"  # توکن ربات تلگرام خود را اینجا بگذارید
+    BOT_TOKEN = "8876033736:AAH-EoESxq8aTDDMJE3gtxOC7hOZ2x0e5wg"  # توکن ربات خود را اینجا بگذارید
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     
@@ -157,4 +167,3 @@ if __name__ == '__main__':
     app.add_handler(conv_handler)
     print("ربات روشن شد!")
     app.run_polling()
-
