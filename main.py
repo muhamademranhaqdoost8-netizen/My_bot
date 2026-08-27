@@ -18,31 +18,57 @@ def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     out_file = "downloads/downloaded_media.mp4" if mode == "video" else "downloads/downloaded_media.mp3"
 
-    # ارسال مستقیم درخواست به سرورهای واسط دانلود بدون مسدودسازی
-    api_endpoint = "https://co.wuk.sh/api/json"
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0"
-    }
-    payload = {
-        "url": url,
-        "downloadMode": "audio" if mode == "audio" else "auto"
-    }
+    # لیست سرورهای فعال برای استخراج مستقیم لینک دانلود
+    api_endpoints = [
+        "https://api.cobalt.tools",
+        "https://cobalt-api.koyeb.app",
+        "https://api.wuk.sh"
+    ]
 
-    response = requests.post(api_endpoint, json=payload, headers=headers, timeout=25)
-    data = response.json()
-    
-    stream_url = data.get("url")
-    if stream_url:
-        with requests.get(stream_url, stream=True, timeout=90) as r:
+    download_url = None
+
+    for endpoint in api_endpoints:
+        try:
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0"
+            }
+            payload = {
+                "url": url,
+                "downloadMode": "audio" if mode == "audio" else "auto"
+            }
+            res = requests.post(f"{endpoint}/api/json", json=payload, headers=headers, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                download_url = data.get("url")
+                if download_url:
+                    break
+        except Exception:
+            continue
+
+    # اگر از طریق API دریافت نشد، از موتور دوم استفاده می‌شود
+    if not download_url:
+        try:
+            rapid_res = requests.get(
+                "https://yt-download-api.fly.dev/download",
+                params={"url": url, "type": mode},
+                timeout=15
+            )
+            if rapid_res.status_code == 200:
+                download_url = rapid_res.json().get("url")
+        except Exception:
+            pass
+
+    if download_url:
+        with requests.get(download_url, stream=True, timeout=120) as r:
             r.raise_for_status()
             with open(out_file, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=16384):
                     if chunk:
                         f.write(chunk)
         return [out_file]
-    
+
     return []
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -74,13 +100,13 @@ async def menu_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "opt_yt_audio":
         context.user_data['mode'] = "audio"
-        await query.message.reply_text("🎵 لطفاً لینک آهنگ/ویدیو از یوتیوب را ارسال کنید:")
+        await query.message.reply_text("🎵 لطفاً لینک آهنگ/ویدیو از **یوتیوب** را ارسال کنید:")
     elif data == "opt_yt_video":
         context.user_data['mode'] = "video"
-        await query.message.reply_text("📥 لطفاً لینک ویدیو از یوتیوب را ارسال کنید:")
+        await query.message.reply_text("📥 لطفاً لینک ویدیو از **یوتیوب** را ارسال کنید:")
     elif data == "opt_insta":
         context.user_data['mode'] = "video"
-        await query.message.reply_text("📸 لطفاً لینک پست یا ریلز اینستاگرام را ارسال کنید:")
+        await query.message.reply_text("📸 لطفاً لینک از **اینستاگرام** را ارسال کنید:")
         
     return GET_LINK
 
@@ -92,12 +118,12 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return GET_LINK
         
     mode = context.user_data.get('mode', 'video')
-    status_msg = await update.message.reply_text("⏳ در حال دانلود و دریافت مستقیم فایل... لطفاً صبر کنید.")
+    status_msg = await update.message.reply_text("⏳ در حال دانلود فایل... لطفاً صبر کنید.")
     
     try:
         files = download_media(url, mode)
         if files:
-            await status_msg.edit_text("⬆️ در حال آپلود روی تلگرام...")
+            await status_msg.edit_text("⬆️ در حال ارسال به تلگرام...")
             for f in files:
                 with open(f, 'rb') as media_file:
                     if mode == "audio":
@@ -116,7 +142,7 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await status_msg.delete()
         else:
-            await status_msg.edit_text("❌ خطا: دریافت لینک از این آدرس ممکن نبود.")
+            await status_msg.edit_text("❌ خطا: سرور نتوانست این ویدیو را دریافت کند.")
     except Exception as e:
         await status_msg.edit_text(f"❌ خطا: {str(e)[:120]}")
     finally:
