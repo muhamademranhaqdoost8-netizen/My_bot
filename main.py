@@ -18,7 +18,16 @@ static_ffmpeg.add_paths()
 
 GET_LINK = range(1)
 
-def download_media(url: str, mode: str) -> list:
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_name = update.effective_user.first_name
+    welcome_text = (
+        f"سلام **{user_name}** عزیز! 👋\n"
+        "به ربات پیشرفته دانلودر خوش آمدید.\n\n"
+        "✨ این ربات با افتخار توسط **عمران نوری** ساخته شده است.\n\n"
+        "لطفاً یکی از گزینه‌های زیر را انتخاب کنید:"
+    )def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     
     if mode == "audio":
@@ -29,9 +38,10 @@ def download_media(url: str, mode: str) -> list:
             'quiet': True,
         }
     else:
-        # بهترین کیفیت ویدیو + بهترین کیفیت صدا همراه با ترکیب خودکار توسط ffmpeg
+        # انتخاب منعطف: بهترین تصویر + بهترین صدا از هر نوع فرمتی
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'bestvideo+bestaudio/best',
+            'merge_output_format': 'mp4',  # تبدیل خروجی نهایی به mp4 توسط ffmpeg
             'outtmpl': 'downloads/%(id)s.%(ext)s',
             'max_filesize': 48 * 1024 * 1024,
             'quiet': True,
@@ -50,14 +60,6 @@ def download_media(url: str, mode: str) -> list:
             file_id = info.get('id', 'media')
             return glob.glob(f"downloads/{file_id}*")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_name = update.effective_user.first_name
-    welcome_text = (
-        f"سلام **{user_name}** عزیز! 👋\n"
-        "به ربات پیشرفته دانلودر خوش آمدید.\n\n"
-        "✨ این ربات با افتخار توسط **عمران نوری** ساخته شده است.\n\n"
-        "لطفاً یکی از گزینه‌های زیر را انتخاب کنید:"
-    )
     keyboard = [
         [InlineKeyboardButton("📥 دانلود ویدیو از یوتیوب", callback_data="opt_yt_video")],
         [InlineKeyboardButton("🎵 دانلود آهنگ از یوتیوب", callback_data="opt_yt_audio")],
