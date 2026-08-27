@@ -13,7 +13,6 @@ from telegram.ext import (
 )
 import yt_dlp
 
-# اضافه کردن خودکار ابزار ffmpeg به سیستم
 static_ffmpeg.add_paths()
 
 GET_LINK = range(1)
@@ -21,7 +20,7 @@ GET_LINK = range(1)
 def download_media(url: str, mode: str) -> list:
     os.makedirs("downloads", exist_ok=True)
     
-    # تنظیمات ساده و مستقیم برای دور زدن محدودیت‌های یوتیوب بدون فیلتر کیفیت
+    # تنظیم کلاینت‌های موبایل برای عبور کامل از مسدودسازی یوتیوب
     ydl_opts = {
         'outtmpl': 'downloads/%(id)s.%(ext)s',
         'max_filesize': 48 * 1024 * 1024,
@@ -29,11 +28,8 @@ def download_media(url: str, mode: str) -> list:
         'nocheckcertificate': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['android_creator', 'ios', 'android']
             }
-        },
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
         }
     }
 
@@ -60,14 +56,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.effective_user.first_name
     welcome_text = (
         f"سلام **{user_name}** عزیز! 👋\n"
-        "به ربات پیشرفته دانلودر خوش آمدید.\n\n"
-        "✨ این ربات با افتخار توسط **عمران نوری** ساخته شده است.\n\n"
-        "لطفاً یکی از گزینه‌های زیر را انتخاب کنید:"
+        "به ربات دانلودر خوش آمدید.\n\n"
+        "لطفاً نوع دانلود را انتخاب کنید:"
     )
     keyboard = [
         [InlineKeyboardButton("📥 دانلود ویدیو از یوتیوب", callback_data="opt_yt_video")],
         [InlineKeyboardButton("🎵 دانلود آهنگ از یوتیوب", callback_data="opt_yt_audio")],
-        [InlineKeyboardButton("📸 دانلود پست و استوری اینستاگرام", callback_data="opt_insta")]
+        [InlineKeyboardButton("📸 دانلود از اینستاگرام", callback_data="opt_insta")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -91,7 +86,7 @@ async def menu_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("📥 لطفاً لینک ویدیو از **یوتیوب** را ارسال کنید:")
     elif data == "opt_insta":
         context.user_data['mode'] = "video"
-        await query.message.reply_text("📸 لطفاً لینک پست یا استوری **اینستاگرام** را ارسال کنید:")
+        await query.message.reply_text("📸 لطفاً لینک از **اینستاگرام** را ارسال کنید:")
         
     return GET_LINK
 
@@ -103,13 +98,12 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return GET_LINK
         
     mode = context.user_data.get('mode', 'video')
-    status_msg = await update.message.reply_text("⏳ در حال پردازش و دانلود... لطفاً کمی صبر کنید.")
+    status_msg = await update.message.reply_text("⏳ در حال دانلود... لطفاً کمی صبر کنید.")
     
-    files = []
     try:
         files = download_media(url, mode)
         if files:
-            await status_msg.edit_text("⬆️ در حال ارسال فایل به تلگرام...")
+            await status_msg.edit_text("⬆️ در حال ارسال به تلگرام...")
             for f in files:
                 with open(f, 'rb') as media_file:
                     if f.endswith(('.jpg', '.png', '.jpeg', '.webp')):
@@ -120,19 +114,19 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         await update.message.reply_video(video=media_file)
             
             await update.message.reply_text(
-                "✨ **دانلود با موفقیت انجام شد!**\nبرای دانلود بعدی گزینه مورد نظر را انتخاب کنید:",
+                "✨ **دانلود با موفقیت انجام شد!**\nگزینه بعدی را انتخاب کنید:",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("📥 دانلود ویدیو از یوتیوب", callback_data="opt_yt_video")],
                     [InlineKeyboardButton("🎵 دانلود آهنگ از یوتیوب", callback_data="opt_yt_audio")],
-                    [InlineKeyboardButton("📸 دانلود پست و استوری اینستاگرام", callback_data="opt_insta")]
+                    [InlineKeyboardButton("📸 دانلود از اینستاگرام", callback_data="opt_insta")]
                 ]),
                 parse_mode="Markdown"
             )
             await status_msg.delete()
         else:
-            await status_msg.edit_text("❌ خطا: فایلی یافت نشد.")
+            await status_msg.edit_text("❌ خطا: فایلی برای دانلود یافت نشد.")
     except Exception as e:
-        await status_msg.edit_text(f"❌ خطا در پردازش: {str(e)[:120]}")
+        await status_msg.edit_text(f"❌ خطا: {str(e)[:120]}")
     finally:
         for f in glob.glob("downloads/*"):
             if os.path.exists(f):
@@ -141,7 +135,7 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return GET_LINK
 
 if __name__ == '__main__':
-    BOT_TOKEN = "8876033736:AAH-EoESxq8aTDDMJE3gtxOC7hOZ2x0e5wg"  # توکن ربات خود را اینجا قرار دهید
+    BOT_TOKEN = "8876033736:AAH-EoESxq8aTDDMJE3gtxOC7hOZ2x0e5wg"  # توکن ربات تلگرام خود را اینجا بگذارید
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     
@@ -163,3 +157,4 @@ if __name__ == '__main__':
     app.add_handler(conv_handler)
     print("ربات روشن شد!")
     app.run_polling()
+
