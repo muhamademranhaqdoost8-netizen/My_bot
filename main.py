@@ -30,7 +30,7 @@ from telegram.ext import (
 # =========================
 
 # توکن به صورت مستقیم در کد قرار داده شد تا در PythonAnywhere نیازی به تنظیم متغیر محیطی نباشد
-BOT_TOKEN = "8876033736:AAH-EoESxq8aTDDMJE3gtxOC7hOZ2x0e5wg"
+BOT_TOKEN = "8763775253:AAFOmQwU89BDYOtENWA2HlQHaFvxTwu4ZNs"
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
